@@ -7,13 +7,26 @@
 
 (defconst giving/base-path (f-parent (or load-file-name (buffer-file-name))))
 
+(defun giving/slurp (path)
+  "Read PATH and return a string."
+  (with-temp-buffer
+    (insert-file-contents-literally path)
+    (buffer-string)))
+
 (cl-defstruct
     (giving/backend
      (:constructor giving/make-backend))
   (name "gb")
   (cell-size 2) ;; cell size in bytes
-  (assemble-command (lambda (in out) (list "rgbasm" "-L" "-o" out in)))
-  (link-command (lambda (in out) (list "rgblink" "-o" out in)))
+  (assemble-command
+   (lambda (in out)
+     (list
+      "rgbasm"
+      "-I" (f-join giving/base-path "data" "gb")
+      "-L"
+      "-o" out
+      in)))
+  (link-command (lambda (in out) (list "rgblink" "-n" "symbols.txt" "-o" out in)))
   (post-command (lambda (in) (list "rgbfix" "-v" "-p" "0xFF" in)))
   (define-word
    (lambda (name code-label word-labels)
@@ -26,42 +39,46 @@
         ""))))
   (header-template
    (lambda (backend)
-     (format
-      "INCLUDE \"%s\"
-SECTION \"Header\", ROM0[$100]
-\tjp EntryPoint
-\tds $150 - @, 0
-EntryPoint:
-\tld a, 0
-\tld [rNR52], a
-Main:
-\tinc de
-\tjp Main
-SECTION \"Giving Forth\", ROM0
-"
-      (f-join (giving/backend-data-dir backend) "hardware.inc"))))
+     (giving/slurp (f-join giving/base-path "data" "gb" "header.s"))))
   (code
-   "NEXT:
-\tld e,[hl]
-\tinc hl
-\tld d,[hl]
-\tinc hl
-\tpush hl
-\tld h,d
-\tld l,e
-\tjp [hl]
-ENTER:
-\tinc hl
-\tinc hl
-\tjp NEXT
-EXIT:
-\tpop hl
-\tjp NEXT
-"))
+   "
+NEXT:
+;; load IP into de
+\tGLoad GivingIP,d,e
+;; load entry address for word at IP into de
+\tGDeref d,e
+;; hl now contains next IP value, update GivingIP
+\tGStore GivingIP,h,l
+;; update GivingW with value of entry address for word
+\tGStore GivingW,d,e
+;; load address of code for entry into de
+\tGDeref d,e
+;; jump to code
+\tld l, e
+\tld h, d
+\tjp hl
 
-(defun giving/backend-data-dir (backend)
-  "Return the absolute path to the data directory for BACKEND."
-  (f-join giving/base-path "data" (giving/backend-name backend)))
+ENTER:
+;; load GivingIP into hl and push it
+\tGLoad GivingIP,h,l
+\tpush hl
+;; load GivingW into hl
+\tGLoad GivingW,h,l
+;; increment by 2
+\tinc hl
+\tinc hl
+;; set GivingIP to the incremented GivingW
+\tGStore GivingIP,h,l
+\tjp NEXT
+
+EXIT:
+;; pop the previous IP from stack and restore it
+\tpop hl
+\tGStore GivingIP,h,l
+\tjp NEXT
+exit:
+\tdw EXIT
+"))
 
 (defun giving/backend-header (backend)
   "Return the header for an assembly file for BACKEND."

@@ -60,7 +60,8 @@
              (giving/word-name it)
              (if (giving/word-code it)
                  (s-upcase (giving/word-name it))
-               "ENTER"))
+               "ENTER")
+             (giving/word-body it))
             words)))
          (all-code
           (s-join
@@ -85,7 +86,91 @@
 (giving/assemble
  "test.gb"
  giving/backend-gb
- nil
+ (list
+  (giving/make-word
+   :name "quit"
+   :code "
+\tjp Main
+")
+  (giving/make-word
+   :name "incb"
+   :code "
+\tinc b
+\tjp NEXT
+")
+  (giving/make-word
+   :name "cafe"
+   :code "
+\tld de, $cafe
+\tGPush d,e
+\tjp NEXT
+")
+  (giving/make-word
+   :name "beef"
+   :code "
+\tld de, $beef
+\tGPush d,e
+\tjp NEXT
+")
+  (giving/make-word
+   :name "plus"
+   :code "
+\tGPop b,c
+\tGPop d,e
+\tld l,e
+\tld h,d
+\tadd hl,bc
+\tld c,l
+\tld b,h
+\tGPush b,c
+\tjp NEXT
+")
+  (giving/make-word
+   :name "minus"
+   :code "
+\tGPop b,c
+\tGNegate b,c
+\tGPop d,e
+\tld l,e
+\tld h,d
+\tadd hl,bc
+\tld c,l
+\tld b,h
+\tGPush b,c
+\tjp NEXT
+")
+  (giving/make-word
+   :name "dup"
+   :code "
+\tGPop b,c
+\tGPush b,c
+\tGPush b,c
+\tjp NEXT
+")
+  (giving/make-word
+   :name "swp"
+   :code "
+\tGPop b,c
+\tGPop d,e
+\tGPush b,c
+\tGPush d,e
+\tjp NEXT
+")
+  (giving/make-word
+   :name "debug"
+   :code "
+\tGPop b,c
+\tjp NEXT
+")
+  (giving/make-word
+   :name "incb2"
+   :body '("incb" "incb" "exit")
+   )
+  (giving/make-word
+   :name "main"
+   :body '("beef" "cafe" "swp" "minus" "debug" "quit")
+   )
+  )
  )
 
 (provide 'giving-compiler)

@@ -1,0 +1,23 @@
+What does this whole situation look like?
+
+A Givingforth program is an Emacs buffer containing text.
+
+#+begin_src forth
+: foo 2 + ;
+3 foo .
+#+end_src
+
+A program is evaluated in two contexts:
+ - using the compile-time semantics of each word, within Emacs
+   + this builds a dictionary of words
+   + at compile-time, a dictionary is: a list of word definitions, a mapping from word names to bodies
+ - using the runtime semantics of each word, on the Game Boy
+   + this evaluates a word within the context of a dictionary
+   + at runtime, a dictionary is a: a bunch of memory containing entries, an array of entries
+     - each entry is: a pointer to some code to execute the entry + some arbitrary data
+     - for "code words", aka primitives, the code will just be code that does stuff, no data
+     - for "forth words" the code will be a function that tells the forth evaluator to start running the data
+       the data is a list of addresses of entries
+* Register Allocation
+- HL is IP - points to next word to evaluate
+- DE is W - points to entry of currently-evaluating word
