@@ -1,0 +1,5 @@
+(add-to-list 'load-path (f-canonical "./"))
+(require 'giving-word)
+(require 'giving-backend)
+(require 'giving-assembler)
+(require 'giving-compiler)
