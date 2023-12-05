@@ -11,7 +11,7 @@ EntryPoint:
 	ld a, h
 	ld [GivingSP+1], a
 Main:
-	ld hl, main+2
+	ld hl, main+2 ; skip the first word of main (it's ENTER, since we define main in the usual way)
 	ld a, l
 	ld [GivingIP], a
 	ld a, h

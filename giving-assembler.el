@@ -32,7 +32,9 @@
 
 (defun giving/assemble (path backend words)
   "Given a BACKEND and a list of WORDS, produce an executable at PATH."
-  (let* ((asm-path (make-temp-file "giving-assemble"))
+  (let* ((extra-vars (giving/word-code (pop words)))
+         (extra-data (giving/word-code (pop words)))
+         (asm-path (make-temp-file "giving-assemble"))
          (obj-path (make-temp-file "giving-link"))
          (assemble (funcall (giving/backend-assemble-command backend) asm-path obj-path))
          (link (funcall (giving/backend-link-command backend) obj-path path))
@@ -60,9 +62,13 @@
            "\n"
            (list
             (giving/backend-header backend)
+            "SECTION \"User RAM\", WRAM0"
+            extra-vars
+            "SECTION \"User ROM\", ROM0"
             (giving/backend-code backend)
             extra-code
             words-code
+            extra-data
             )))
          )
     (with-current-buffer (get-buffer-create giving/assembly-buffer)
